@@ -144,6 +144,21 @@ export default function ControlPanel() {
     }
   }
 
+  async function handleEndMatch() {
+    pushLog("> map_rotate", "info");
+    try {
+      const res = await fetch("/api/rotate", { method: "POST" });
+      if (!res.ok) throw new Error((await res.json()).error ?? "failed");
+      pushLog("Match ended — moving to next map.", "ok");
+      setTimeout(checkStatus, 4000);
+    } catch (err) {
+      pushLog(
+        `End match failed: ${err instanceof Error ? err.message : "unknown error"}`,
+        "err"
+      );
+    }
+  }
+
   // ---------- Not signed in ----------
   if (authed === false) {
     return (
@@ -326,6 +341,13 @@ export default function ControlPanel() {
                 </button>
               </div>
             </div>
+
+            <button
+              onClick={handleEndMatch}
+              className="w-full text-sm bg-danger/20 border border-danger text-danger hover:bg-danger hover:text-ink rounded px-3 py-1.5 transition-colors"
+            >
+              End match now
+            </button>
 
             <button
               onClick={checkStatus}

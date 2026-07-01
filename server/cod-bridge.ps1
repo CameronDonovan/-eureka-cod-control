@@ -8,27 +8,32 @@
 $Port = 9100
 $RconHost = "127.0.0.1"
 $RconPort = 28960
-$RconPassword = "Eureka1!"   # match server.cfg
-$SharedSecret = "PDdsHlJn3ZVfi/jQjvuESY9QEDQ4qGUuV9CMyn7cxKw="      # must match BRIDGE_SHARED_SECRET on Vercel
+$RconPassword = "your-strong-rcon-password"   # match server.cfg
+$SharedSecret = "your-shared-secret-here"      # must match BRIDGE_SHARED_SECRET on Vercel
+
 
 function Send-Rcon {
     param(
         [string]$HostAddress = $RconHost,
         [int]$Port = $RconPort,
         [string]$Password = $RconPassword,
-        [string]$Command
+        [string]$Command,
+        [int]$WaitMs = 800
     )
     $client = New-Object System.Net.Sockets.UdpClient
+    $client.Client.ReceiveTimeout = $WaitMs
     $prefix = [byte[]](0xFF, 0xFF, 0xFF, 0xFF)
     $body = [System.Text.Encoding]::ASCII.GetBytes("rcon $Password $Command")
     $packet = $prefix + $body
     $client.Send($packet, $packet.Length, $HostAddress, $Port) | Out-Null
-    Start-Sleep -Milliseconds 250
+
     $result = $null
-    if ($client.Available -gt 0) {
+    try {
         $remoteEP = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
         $response = $client.Receive([ref]$remoteEP)
         $result = [System.Text.Encoding]::ASCII.GetString($response)
+    } catch {
+        # timed out waiting for a reply - leave $result as $null
     }
     $client.Close()
     return $result
@@ -68,22 +73,36 @@ while ($listener.IsListening) {
         switch ($path) {
             "/api/map" {
                 $mapName = $body.map
-                Send-Rcon -Command "map $mapName" | Out-Null
+                Send-Rcon -Command "map $mapName" -WaitMs 300 | Out-Null
                 $result = @{ ok = $true; map = $mapName }
+            }
+            "/api/rotate" {
+                Send-Rcon -Command "map_rotate" -WaitMs 300 | Out-Null
+                $result = @{ ok = $true }
             }
             "/api/settings" {
                 $dvar = $body.dvar
                 $value = $body.value
-                Send-Rcon -Command "set $dvar `"$value`"" | Out-Null
+                Send-Rcon -Command "set $dvar `"$value`"" -WaitMs 300 | Out-Null
                 $result = @{ ok = $true; dvar = $dvar; value = $value }
             }
             "/api/status" {
-                $status = Send-Rcon -Command "status"
+                $status = Send-Rcon -Command "status" -WaitMs 800
+                $mapName = "unknown"
+                $playerCount = 0
+                if ($status) {
+                    if ($status -match "map:\s*(\S+)") {
+                        $mapName = $matches[1]
+                    }
+                    # Count player lines: lines that start with a numeric client slot
+                    $playerLines = ($status -split "`n") | Where-Object { $_ -match "^\s*\d+\s+\d+\s+\d+\s+" }
+                    $playerCount = $playerLines.Count
+                }
                 $result = @{
                     online  = [bool]$status
                     raw     = $status
-                    map     = "see raw"
-                    players = "see raw"
+                    map     = $mapName
+                    players = $playerCount
                 }
             }
             default {
