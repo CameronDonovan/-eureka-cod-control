@@ -8,9 +8,8 @@
 $Port = 9100
 $RconHost = "127.0.0.1"
 $RconPort = 28960
-$RconPassword = "your-strong-rcon-password"   # match server.cfg
-$SharedSecret = "your-shared-secret-here"      # must match BRIDGE_SHARED_SECRET on Vercel
-
+$RconPassword = "Eureka1"   # match server.cfg
+$SharedSecret = "PDdsHlJn3ZVfi/jQjvuESY9QEDQ4qGUuV9CMyn7cxKw="      # must match BRIDGE_SHARED_SECRET on Vercel
 
 function Send-Rcon {
     param(
@@ -40,7 +39,7 @@ function Send-Rcon {
 }
 
 $listener = New-Object System.Net.HttpListener
-$listener.Prefixes.Add("http://localhost:$Port/")
+$listener.Prefixes.Add("http://+:$Port/")
 $listener.Start()
 Write-Host "Bridge listening on port $Port..."
 
@@ -78,6 +77,10 @@ while ($listener.IsListening) {
             }
             "/api/rotate" {
                 Send-Rcon -Command "map_rotate" -WaitMs 300 | Out-Null
+                $result = @{ ok = $true }
+            }
+            "/api/fastrestart" {
+                Send-Rcon -Command "fast_restart" -WaitMs 300 | Out-Null
                 $result = @{ ok = $true }
             }
             "/api/settings" {

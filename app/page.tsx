@@ -47,6 +47,8 @@ export default function ControlPanel() {
   const [gametype, setGametype] = useState("war");
   const [scoreLimit, setScoreLimit] = useState("7500");
   const [timeLimit, setTimeLimit] = useState("10");
+  const [botCount, setBotCount] = useState("6");
+  const [botsEnabled, setBotsEnabled] = useState(true);
 
   const [log, setLog] = useState<LogLine[]>([]);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -139,6 +141,39 @@ export default function ControlPanel() {
     } catch (err) {
       pushLog(
         `Setting failed: ${err instanceof Error ? err.message : "unknown error"}`,
+        "err"
+      );
+    }
+  }
+
+  // Some dvars (score limit, time limit) are only read when a match starts,
+  // so we set the value then trigger a fast_restart to apply it right away
+  // without booting everyone to a different map.
+  async function pushSettingAndRestart(
+    dvar: string,
+    value: string,
+    label: string
+  ) {
+    pushLog(`> set ${dvar} "${value}"`, "info");
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dvar, value }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "failed");
+      pushLog(`${label} updated. Restarting round to apply...`, "ok");
+
+      const restartRes = await fetch("/api/fastrestart", { method: "POST" });
+      if (!restartRes.ok)
+        throw new Error((await restartRes.json()).error ?? "restart failed");
+      pushLog("Round restarted.", "ok");
+      setTimeout(checkStatus, 3000);
+    } catch (err) {
+      pushLog(
+        `${label} update failed: ${
+          err instanceof Error ? err.message : "unknown error"
+        }`,
         "err"
       );
     }
@@ -304,7 +339,7 @@ export default function ControlPanel() {
                 />
                 <button
                   onClick={() =>
-                    pushSetting(
+                    pushSettingAndRestart(
                       `scr_${gametype}_scorelimit`,
                       scoreLimit,
                       "Score limit"
@@ -329,7 +364,7 @@ export default function ControlPanel() {
                 />
                 <button
                   onClick={() =>
-                    pushSetting(
+                    pushSettingAndRestart(
                       `scr_${gametype}_timelimit`,
                       timeLimit,
                       "Time limit"
@@ -340,6 +375,53 @@ export default function ControlPanel() {
                   Set
                 </button>
               </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted block mb-1">
+                Bots
+              </label>
+              <p className="text-xs text-muted mb-2 leading-relaxed">
+                Requires the Bot Warfare mod installed once on the server
+                (fs_game &quot;mods/bots&quot; + restart). After that, bot
+                count can be changed live from here.
+              </p>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={18}
+                  value={botCount}
+                  onChange={(e) => setBotCount(e.target.value)}
+                  className="w-full bg-base border border-panelborder rounded px-2 py-2 text-sm"
+                />
+                <button
+                  onClick={() =>
+                    pushSetting("bots_manage_fill", botCount, "Bot count")
+                  }
+                  className="text-sm bg-panelborder hover:bg-amber hover:text-base rounded px-3 transition-colors whitespace-nowrap"
+                >
+                  Set fill
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  const next = !botsEnabled;
+                  setBotsEnabled(next);
+                  pushSetting(
+                    "bots_manage_fill_kick",
+                    next ? "1" : "0",
+                    "Bots fill-kick"
+                  );
+                }}
+                className={`w-full text-sm rounded px-3 py-1.5 transition-colors border ${
+                  botsEnabled
+                    ? "border-online text-online"
+                    : "border-panelborder text-muted"
+                }`}
+              >
+                Fill-kick: {botsEnabled ? "On" : "Off"}
+              </button>
             </div>
 
             <button
