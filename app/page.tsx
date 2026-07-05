@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 type LogLine = { time: string; text: string; tone: "ok" | "err" | "info" };
 
 const MAPS: { label: string; value: string }[] = [
-  const MAPS: { label: string; value: string }[] = [
   // --- MW2 (2009) core maps ---
   { label: "Terminal", value: "mp_terminal" },
   { label: "Highrise", value: "mp_highrise" },
