@@ -78,7 +78,6 @@ const MAPS: { label: string; value: string }[] = [
   { label: "Village", value: "mp_village" },
   { label: "Mission", value: "mp_alpha" },
 ];
-];
 
 const GAMETYPES = [
   { label: "Team Deathmatch", value: "war" },
