@@ -11,6 +11,12 @@ $RconPort = 28960
 $RconPassword = "Eureka1"   # match server.cfg
 $SharedSecret = "PDdsHlJn3ZVfi/jQjvuESY9QEDQ4qGUuV9CMyn7cxKw="      # must match BRIDGE_SHARED_SECRET on Vercel
 
+# Fast-download server for mod files (plain HTTP only - the game engine
+# does not support downloading over HTTPS). This listens on a SEPARATE
+# port that you port-forward directly on your router, same as 28960.
+$FastDlPort = 8081
+$FastDlRoot = "C:\Shared\Alpha\CODSERVER"   # parent folder - contains "mods\bots\..."; client auto-prepends "mods/" itself
+
 function Send-Rcon {
     param(
         [string]$HostAddress = $RconHost,
@@ -40,8 +46,20 @@ function Send-Rcon {
 
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://+:$Port/")
+$listener.Prefixes.Add("http://+:$FastDlPort/")
 $listener.Start()
-Write-Host "Bridge listening on port $Port..."
+Write-Host "Bridge API listening on port $Port..."
+Write-Host "Fast-download file server listening on port $FastDlPort..."
+
+function Get-ContentType {
+    param([string]$Extension)
+    switch ($Extension.ToLower()) {
+        ".iwd" { return "application/octet-stream" }
+        ".ff"  { return "application/octet-stream" }
+        ".json" { return "application/json" }
+        default { return "application/octet-stream" }
+    }
+}
 
 while ($listener.IsListening) {
     $context = $listener.GetContext()
@@ -49,13 +67,39 @@ while ($listener.IsListening) {
     $response = $context.Response
 
     try {
+        # ---- Fast-download file server (plain HTTP, no auth - the game
+        # client can't send custom headers, so this port must stay open) ----
+        if ($request.Url.Port -eq $FastDlPort) {
+            $relativePath = $request.Url.LocalPath.TrimStart("/")
+            $filePath = Join-Path $FastDlRoot $relativePath
+
+            # Prevent path traversal outside the mods folder
+            $resolvedRoot = (Resolve-Path $FastDlRoot).Path
+            $resolvedFile = $null
+            if (Test-Path $filePath) {
+                $resolvedFile = (Resolve-Path $filePath).Path
+            }
+
+            if ($resolvedFile -and $resolvedFile.StartsWith($resolvedRoot) -and -not (Get-Item $filePath).PSIsContainer) {
+                Write-Host "[FastDL] 200 OK  -> $relativePath" -ForegroundColor Green
+                $bytes = [System.IO.File]::ReadAllBytes($filePath)
+                $response.ContentType = Get-ContentType ([System.IO.Path]::GetExtension($filePath))
+                $response.ContentLength64 = $bytes.Length
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+            } else {
+                Write-Host "[FastDL] 404 MISS -> requested '$relativePath' (looked for '$filePath')" -ForegroundColor Red
+                $response.StatusCode = 404
+            }
+            continue
+        }
+
+        # ---- Everything below is the authenticated JSON API on $Port ----
         # Auth check
         $secretHeader = $request.Headers["X-Bridge-Secret"]
         if ($secretHeader -ne $SharedSecret) {
             $response.StatusCode = 401
             $bytes = [System.Text.Encoding]::UTF8.GetBytes('{"error":"unauthorized"}')
             $response.OutputStream.Write($bytes, 0, $bytes.Length)
-            $response.Close()
             continue
         }
 

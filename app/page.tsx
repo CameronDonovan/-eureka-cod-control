@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 type LogLine = { time: string; text: string; tone: "ok" | "err" | "info" };
 
 const MAPS: { label: string; value: string }[] = [
+  const MAPS: { label: string; value: string }[] = [
+  // --- MW2 (2009) core maps ---
   { label: "Terminal", value: "mp_terminal" },
   { label: "Highrise", value: "mp_highrise" },
   { label: "Favela", value: "mp_favela" },
@@ -22,6 +24,61 @@ const MAPS: { label: string; value: string }[] = [
   { label: "Sub Base", value: "mp_subbase" },
   { label: "Underpass", value: "mp_underpass" },
   { label: "Wasteland", value: "mp_brecourt" },
+
+  // --- MW2 Stimulus/Resurgence DLC ---
+  { label: "Salvage", value: "mp_complex" },
+  { label: "Crash", value: "mp_crash" },
+  { label: "Overgrown", value: "mp_overgrown" },
+  { label: "Bailout", value: "mp_compact" },
+  { label: "Storm", value: "mp_storm" },
+  { label: "Fuel", value: "mp_fuel2" },
+  { label: "Strike", value: "mp_strike" },
+  { label: "Trailer Park", value: "mp_trailerpark" },
+  { label: "Vacant", value: "mp_vacant" },
+
+  // --- Uncertain / possibly modded variants (verify against your server) ---
+  { label: "Abandon (unconfirmed)", value: "mp_abandon" },
+  { label: "Bog (variant, unconfirmed)", value: "mp_bog_sh" },
+  { label: "Wet Work (variant, unconfirmed)", value: "mp_cargoship_sh" },
+  { label: "Shipment (Long)", value: "mp_shipment_long" },
+  { label: "Rust (Long)", value: "mp_rust_long" },
+  { label: "Storm (Spring, unconfirmed)", value: "mp_storm_spring" },
+  { label: "Favela (Tropical, unconfirmed)", value: "mp_fav_tropical" },
+  { label: "Estate (Tropical, unconfirmed)", value: "mp_estate_tropical" },
+  { label: "Crash (Tropical, unconfirmed)", value: "mp_crash_tropical" },
+  { label: "Bloc (variant, unconfirmed)", value: "mp_bloc_sh" },
+
+  // --- CoD4: Modern Warfare (1) maps ---
+  { label: "Crossfire", value: "mp_cross_fire" },
+  { label: "Bloc", value: "mp_bloc" },
+  { label: "Wet Work", value: "mp_cargoship" },
+  { label: "Killhouse", value: "mp_killhouse" },
+  { label: "Shipment", value: "mp_shipment" },
+  { label: "Firing Range", value: "mp_firingrange" },
+  { label: "Backlot", value: "mp_backlot" },
+  { label: "Broadcast", value: "mp_broadcast" },
+  { label: "District", value: "mp_citystreets" },
+  { label: "Ambush", value: "mp_convoy" },
+  { label: "Countdown", value: "mp_countdown" },
+  { label: "Winter Crash", value: "mp_crash_snow" },
+  { label: "Downpour", value: "mp_farm" },
+  { label: "Pipeline", value: "mp_pipeline" },
+  { label: "Showdown", value: "mp_showdown" },
+
+  // --- World at War map (used cross-game in some mods) ---
+  { label: "Carentan", value: "mp_carentan" },
+
+  // --- MW3 maps ---
+  { label: "Dome", value: "mp_dome" },
+  { label: "Hardhat", value: "mp_hardhat" },
+  { label: "Resistance", value: "mp_paris" },
+  { label: "Seatown", value: "mp_seatown" },
+  { label: "Bakaara", value: "mp_bravo" },
+  { label: "Underground", value: "mp_underground" },
+  { label: "Downturn", value: "mp_plaza2" },
+  { label: "Village", value: "mp_village" },
+  { label: "Mission", value: "mp_alpha" },
+];
 ];
 
 const GAMETYPES = [
