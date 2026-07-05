@@ -120,21 +120,19 @@ export default function ControlPanel() {
   }, [log]);
 
   async function checkStatus() {
-    try {
-      const res = await fetch("/api/status");
-      if (res.status === 401) {
-        setAuthed(false);
-        return;
-      }
-      setAuthed(true);
-      const data = await res.json();
-      setOnline(Boolean(data.online));
-      setCurrentMap(data.map ?? "—");
-      setPlayers(data.players ?? "—");
-    } catch {
-      setOnline(false);
-    }
+  try {
+    const res = await fetch("/api/status");
+    if (res.status === 401) { setAuthed(false); return; }
+    setAuthed(true);
+    const data = await res.json();
+    setOnline(Boolean(data.online));
+    setCurrentMap(data.map ?? "—");
+    setPlayers(data.players ?? "—");
+    if (data.gametype) setGametype(data.gametype); // NEW — keep in sync with reality
+  } catch {
+    setOnline(false);
   }
+}
 
   useEffect(() => {
     checkStatus();

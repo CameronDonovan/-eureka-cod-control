@@ -133,25 +133,29 @@ while ($listener.IsListening) {
                 Send-Rcon -Command "set $dvar `"$value`"" -WaitMs 300 | Out-Null
                 $result = @{ ok = $true; dvar = $dvar; value = $value }
             }
-            "/api/status" {
-                $status = Send-Rcon -Command "status" -WaitMs 800
-                $mapName = "unknown"
-                $playerCount = 0
-                if ($status) {
-                    if ($status -match "map:\s*(\S+)") {
-                        $mapName = $matches[1]
-                    }
-                    # Count player lines: lines that start with a numeric client slot
-                    $playerLines = ($status -split "`n") | Where-Object { $_ -match "^\s*\d+\s+\d+\s+\d+\s+" }
-                    $playerCount = $playerLines.Count
-                }
-                $result = @{
-                    online  = [bool]$status
-                    raw     = $status
-                    map     = $mapName
-                    players = $playerCount
-                }
-            }
+           "/api/status" {
+    $status = Send-Rcon -Command "status" -WaitMs 800
+    $mapName = "unknown"
+    $playerCount = 0
+    if ($status) {
+        if ($status -match "map:\s*(\S+)") { $mapName = $matches[1] }
+        $playerLines = ($status -split "`n") | Where-Object { $_ -match "^\s*\d+\s+\d+\s+\d+\s+" }
+        $playerCount = $playerLines.Count
+    }
+    # NEW: ask the server what gametype is actually live
+    $gtRaw = Send-Rcon -Command "g_gametype" -WaitMs 400
+    $currentGametype = $null
+    if ($gtRaw -match '"g_gametype"\s+is:\s*"?([a-z]+)"?') {
+        $currentGametype = $matches[1]
+    }
+    $result = @{
+        online   = [bool]$status
+        raw      = $status
+        map      = $mapName
+        players  = $playerCount
+        gametype = $currentGametype
+    }
+}
             default {
                 $response.StatusCode = 404
                 $result = @{ error = "not found" }
